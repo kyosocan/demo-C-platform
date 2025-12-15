@@ -4,11 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   CheckCircle, 
-  History, 
-  Users, 
   FileCheck, 
-  BookOpen, 
-  BarChart3,
+  Shield,
   LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -22,49 +19,23 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  // 审核员菜单
   {
     href: '/reviewer',
     label: '审核工作台',
     icon: <CheckCircle className="w-5 h-5" />,
-    roles: ['reviewer'],
-  },
-  {
-    href: '/reviewer/history',
-    label: '审核记录',
-    icon: <History className="w-5 h-5" />,
-    roles: ['reviewer'],
-  },
-  {
-    href: '/reviewer/standards',
-    label: '审核标准',
-    icon: <BookOpen className="w-5 h-5" />,
-    roles: ['reviewer'],
-  },
-  // 管理员菜单
-  {
-    href: '/admin/reviewers',
-    label: '审核员管理',
-    icon: <Users className="w-5 h-5" />,
-    roles: ['admin'],
+    roles: ['admin', 'reviewer'],
   },
   {
     href: '/admin/review',
-    label: '审核队列',
+    label: '搜索帖子',
     icon: <FileCheck className="w-5 h-5" />,
-    roles: ['admin'],
+    roles: ['admin', 'reviewer'],
   },
   {
-    href: '/admin/standards',
-    label: '审核标准',
-    icon: <BookOpen className="w-5 h-5" />,
-    roles: ['admin'],
-  },
-  {
-    href: '/admin/statistics',
-    label: '数据统计',
-    icon: <BarChart3 className="w-5 h-5" />,
-    roles: ['admin'],
+    href: '/admin/blacklist-whitelist',
+    label: '黑名单',
+    icon: <Shield className="w-5 h-5" />,
+    roles: ['admin', 'reviewer'],
   },
 ];
 
@@ -132,9 +103,7 @@ export default function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-800 truncate">{currentUser.name}</p>
-            <p className="text-xs text-gray-500">
-              {currentUser.role === 'admin' ? '管理员' : '审核员'}
-            </p>
+            <p className="text-xs text-gray-500">审核员</p>
           </div>
         </div>
         <button

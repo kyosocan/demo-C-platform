@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, Reviewer, Content, ReviewRecord, ReviewStandard, ReviewerStats, SystemStats } from '@/types';
+import { User, Reviewer, Content, ReviewRecord, ReviewStandard, ReviewerStats, SystemStats, BlacklistWhitelistItem, BlacklistWhitelistType } from '@/types';
 import { mockUsers, mockReviewers, mockContents, mockReviewRecords, mockReviewStandards } from './mock-data';
 
 interface AppState {
@@ -56,6 +56,13 @@ interface AppState {
   // 添加审核员
   addReviewer: (reviewer: Reviewer) => void;
   deleteReviewer: (id: string) => void;
+  
+  // 黑白名单
+  blacklistWhitelist: BlacklistWhitelistItem[];
+  addToBlacklistWhitelist: (userId: string, type: BlacklistWhitelistType, note?: string) => void;
+  removeFromBlacklistWhitelist: (userId: string) => void;
+  isInBlacklist: (userId: string) => boolean;
+  isInWhitelist: (userId: string) => boolean;
 }
 
 export const useAppStore = create<AppState>()(
@@ -67,6 +74,7 @@ export const useAppStore = create<AppState>()(
       contents: mockContents,
       reviewRecords: mockReviewRecords,
       reviewStandards: mockReviewStandards,
+      blacklistWhitelist: [],
       
       setCurrentUser: (user) => set({ currentUser: user }),
       
@@ -244,6 +252,35 @@ export const useAppStore = create<AppState>()(
       deleteReviewer: (id) => set((state) => ({
         reviewers: state.reviewers.filter((r) => r.id !== id),
       })),
+      
+      addToBlacklistWhitelist: (userId, type, note) => {
+        const state = get();
+        // 先移除该用户的所有记录
+        const filtered = state.blacklistWhitelist.filter((item) => item.userId !== userId);
+        // 添加新记录
+        const newItem: BlacklistWhitelistItem = {
+          userId,
+          type,
+          addedAt: new Date().toISOString(),
+          addedBy: state.currentUser?.id || 'system',
+          note,
+        };
+        set({ blacklistWhitelist: [...filtered, newItem] });
+      },
+      
+      removeFromBlacklistWhitelist: (userId) => set((state) => ({
+        blacklistWhitelist: state.blacklistWhitelist.filter((item) => item.userId !== userId),
+      })),
+      
+      isInBlacklist: (userId) => {
+        const state = get();
+        return state.blacklistWhitelist.some((item) => item.userId === userId && item.type === 'blacklist');
+      },
+      
+      isInWhitelist: (userId) => {
+        const state = get();
+        return state.blacklistWhitelist.some((item) => item.userId === userId && item.type === 'whitelist');
+      },
     }),
     {
       name: 'content-review-storage',
@@ -253,6 +290,7 @@ export const useAppStore = create<AppState>()(
         contents: state.contents,
         reviewRecords: state.reviewRecords,
         reviewStandards: state.reviewStandards,
+        blacklistWhitelist: state.blacklistWhitelist,
       }),
     }
   )

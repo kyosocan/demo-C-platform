@@ -21,12 +21,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (mounted && currentUser) {
-      // 已登录，跳转到对应页面
-      if (currentUser.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/reviewer');
-      }
+      // 已登录，统一跳转到审核工作台
+      router.push('/reviewer');
     }
   }, [currentUser, router, mounted]);
 
@@ -48,11 +44,8 @@ export default function LoginPage() {
     if (user) {
       toast.success('登录成功');
       setTimeout(() => {
-        if (user.role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/reviewer');
-        }
+        // 统一跳转到审核工作台
+        router.push('/reviewer');
       }, 500);
     } else {
       toast.error('用户名或密码错误');

@@ -22,12 +22,10 @@ export default function AdminLayout({
   useEffect(() => {
     if (mounted && !currentUser) {
       router.push('/');
-    } else if (mounted && currentUser?.role !== 'admin') {
-      router.push('/reviewer');
     }
   }, [currentUser, router, mounted]);
 
-  if (!mounted || !currentUser || currentUser.role !== 'admin') {
+  if (!mounted || !currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#ff2442] border-t-transparent rounded-full animate-spin" />

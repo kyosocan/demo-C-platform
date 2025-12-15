@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// 管理员默认重定向到审核队列
+// 管理员默认重定向到帖子池
 export default function AdminPage() {
   const router = useRouter();
 

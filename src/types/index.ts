@@ -137,3 +137,15 @@ export const REPORT_TYPES: { value: ReportType; label: string }[] = [
   { value: 'copyright', label: '侵权' },
   { value: 'inappropriate', label: '内容不合规' },
 ];
+
+// 黑白名单类型
+export type BlacklistWhitelistType = 'blacklist' | 'whitelist';
+
+// 黑白名单项
+export interface BlacklistWhitelistItem {
+  userId: string;
+  type: BlacklistWhitelistType;
+  addedAt: string;
+  addedBy: string;
+  note?: string;
+}

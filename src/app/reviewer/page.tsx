@@ -7,12 +7,10 @@ import {
   XCircle, 
   AlertTriangle, 
   User, 
-  Clock, 
   FileText,
-  ChevronLeft,
-  ChevronRight,
   Settings,
-  Flag
+  Flag,
+  Power
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Reviewer, Content, RejectReason, REJECT_REASONS } from '@/types';
@@ -24,72 +22,49 @@ import { formatRelativeTime, generateId } from '@/lib/utils';
 export default function ReviewerWorkstation() {
   const { 
     currentUser, 
-    updateReviewerCapacity, 
-    getReviewerQueue,
+    updateReviewerStatus,
     getPendingContents,
-    assignTaskToReviewer,
     updateContent,
     addReviewRecord,
-    reviewers,
   } = useAppStore();
 
   const reviewer = currentUser as Reviewer;
-  const [queue, setQueue] = useState<Content[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentContent, setCurrentContent] = useState<Content | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [rejectReason, setRejectReason] = useState<RejectReason>('other');
   const [rejectNote, setRejectNote] = useState('');
-  const [capacity, setCapacity] = useState(reviewer?.queueCapacity || 10);
   const [imageIndex, setImageIndex] = useState(0);
 
-  // 获取当前队列
-  const refreshQueue = useCallback(() => {
-    if (reviewer) {
-      const currentQueue = getReviewerQueue(reviewer.id);
-      setQueue(currentQueue);
-    }
-  }, [reviewer, getReviewerQueue]);
-
-  // 自动分发任务
-  const autoAssignTasks = useCallback(() => {
-    if (!reviewer || reviewer.status === 'offline') return;
-
-    const currentReviewer = reviewers.find(r => r.id === reviewer.id);
-    if (!currentReviewer) return;
-
-    const currentQueue = getReviewerQueue(reviewer.id);
-    const availableSlots = currentReviewer.queueCapacity - currentQueue.length;
-    
-    if (availableSlots <= 0) return;
-
+  // 获取下一个待审核内容
+  const getNextContent = useCallback(() => {
     const pendingContents = getPendingContents();
-    const toAssign = pendingContents.slice(0, availableSlots);
+    setPendingCount(pendingContents.length);
     
-    toAssign.forEach((content) => {
-      assignTaskToReviewer(content.id, reviewer.id);
-    });
-
-    if (toAssign.length > 0) {
-      toast.info(`已自动分配 ${toAssign.length} 条任务`);
+    if (pendingContents.length > 0) {
+      setCurrentContent(pendingContents[0]);
+      setImageIndex(0);
+    } else {
+      setCurrentContent(null);
     }
-  }, [reviewer, reviewers, getReviewerQueue, getPendingContents, assignTaskToReviewer]);
+  }, [getPendingContents]);
 
+  // 初始化加载
   useEffect(() => {
-    refreshQueue();
-  }, [refreshQueue]);
+    if (reviewer && reviewer.status === 'online') {
+      getNextContent();
+    }
+  }, [reviewer, getNextContent]);
 
-  // 定期检查并自动分发任务
+  // 定期刷新
   useEffect(() => {
-    autoAssignTasks();
-    const interval = setInterval(() => {
-      refreshQueue();
-      autoAssignTasks();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [autoAssignTasks, refreshQueue]);
-
-  const currentContent = queue[currentIndex];
+    if (reviewer && reviewer.status === 'online') {
+      const interval = setInterval(() => {
+        getNextContent();
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [reviewer, getNextContent]);
 
   // 处理通过
   const handleApprove = () => {
@@ -98,8 +73,6 @@ export default function ReviewerWorkstation() {
     // 更新内容状态
     updateContent(currentContent.id, { 
       status: 'approved',
-      assignedTo: undefined,
-      assignedAt: undefined,
     });
 
     // 添加审核记录
@@ -116,12 +89,10 @@ export default function ReviewerWorkstation() {
 
     toast.success('已通过');
     
-    // 移动到下一条或刷新
-    if (currentIndex >= queue.length - 1) {
-      setCurrentIndex(0);
-    }
-    refreshQueue();
-    setImageIndex(0);
+    // 获取下一个
+    setTimeout(() => {
+      getNextContent();
+    }, 300);
   };
 
   // 处理拒绝
@@ -131,8 +102,6 @@ export default function ReviewerWorkstation() {
     // 更新内容状态
     updateContent(currentContent.id, { 
       status: 'rejected',
-      assignedTo: undefined,
-      assignedAt: undefined,
     });
 
     // 添加审核记录
@@ -154,35 +123,23 @@ export default function ReviewerWorkstation() {
     setRejectReason('other');
     setRejectNote('');
     
-    // 移动到下一条或刷新
-    if (currentIndex >= queue.length - 1) {
-      setCurrentIndex(0);
-    }
-    refreshQueue();
-    setImageIndex(0);
+    // 获取下一个
+    setTimeout(() => {
+      getNextContent();
+    }, 300);
   };
 
-  // 保存设置
-  const handleSaveSettings = () => {
+  // 切换在线状态
+  const toggleStatus = () => {
     if (reviewer) {
-      updateReviewerCapacity(reviewer.id, capacity);
-      toast.success('设置已保存');
-      setShowSettingsModal(false);
-    }
-  };
-
-  // 上一条/下一条
-  const goToPrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      setImageIndex(0);
-    }
-  };
-
-  const goToNext = () => {
-    if (currentIndex < queue.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setImageIndex(0);
+      const newStatus = reviewer.status === 'online' ? 'offline' : 'online';
+      updateReviewerStatus(reviewer.id, newStatus);
+      if (newStatus === 'online') {
+        getNextContent();
+      } else {
+        setCurrentContent(null);
+      }
+      toast.info(newStatus === 'online' ? '已上线' : '已下线');
     }
   };
 
@@ -192,7 +149,7 @@ export default function ReviewerWorkstation() {
     <div className="min-h-screen">
       <Header 
         title="审核工作台" 
-        subtitle={`队列: ${queue.length}/${reviewer.queueCapacity}`} 
+        subtitle={`帖子池中还有 ${pendingCount} 条待审核`} 
       />
 
       <div className="p-6">
@@ -204,29 +161,29 @@ export default function ReviewerWorkstation() {
               <span className="font-medium">{reviewer.status === 'online' ? '工作中' : '已离线'}</span>
             </div>
             <div className="text-gray-500">
-              队列容量: <span className="font-medium text-gray-800">{queue.length}/{reviewer.queueCapacity}</span>
+              待审核: <span className="font-medium text-gray-800">{pendingCount} 条</span>
             </div>
           </div>
           <button
-            onClick={() => setShowSettingsModal(true)}
-            className="btn-outline flex items-center gap-2"
+            onClick={toggleStatus}
+            className={`btn flex items-center gap-2 ${
+              reviewer.status === 'online' ? 'btn-secondary' : 'btn-primary'
+            }`}
           >
-            <Settings className="w-4 h-4" />
-            设置
+            <Power className="w-4 h-4" />
+            {reviewer.status === 'online' ? '下线' : '上线'}
           </button>
         </div>
 
         {/* 审核区域 */}
-        {queue.length === 0 ? (
+        {reviewer.status === 'offline' ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-gray-400" />
+              <Power className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">暂无待审核内容</h3>
-            <p className="text-gray-500">
-              {reviewer.status === 'online' 
-                ? '系统会自动为您分配新的审核任务' 
-                : '请先将状态设置为在线以接收任务'}
+            <h3 className="text-lg font-medium text-gray-800 mb-2">您已离线</h3>
+            <p className="text-gray-500 mb-4">
+              请点击"上线"按钮开始审核工作
             </p>
           </div>
         ) : currentContent ? (
@@ -316,31 +273,6 @@ export default function ReviewerWorkstation() {
 
             {/* 操作面板 */}
             <div className="space-y-6">
-              {/* 导航 */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={goToPrev}
-                    disabled={currentIndex === 0}
-                    className="btn-outline flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    上一条
-                  </button>
-                  <span className="text-gray-600">
-                    {currentIndex + 1} / {queue.length}
-                  </span>
-                  <button
-                    onClick={goToNext}
-                    disabled={currentIndex === queue.length - 1}
-                    className="btn-outline flex items-center gap-1 disabled:opacity-50"
-                  >
-                    下一条
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
               {/* 审核操作 */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">审核操作</h3>
@@ -394,7 +326,17 @@ export default function ReviewerWorkstation() {
               </div>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">暂无待审核内容</h3>
+            <p className="text-gray-500">
+              帖子池中暂时没有待审核的内容
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 拒绝理由弹窗 */}
@@ -457,46 +399,6 @@ export default function ReviewerWorkstation() {
             </button>
             <button onClick={handleReject} className="flex-1 btn-danger">
               确认拒绝
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* 设置弹窗 */}
-      <Modal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        title="工作设置"
-      >
-        <div className="p-6">
-          <div className="mb-6">
-            <label className="label">队列容量</label>
-            <p className="text-sm text-gray-500 mb-3">
-              设置您一次可以接受的最大待审核数量
-            </p>
-            <input
-              type="number"
-              value={capacity}
-              onChange={(e) => setCapacity(Math.max(1, parseInt(e.target.value) || 1))}
-              min={1}
-              max={50}
-              className="input"
-            />
-            <p className="text-xs text-gray-400 mt-1">建议设置 5-20 条</p>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                setCapacity(reviewer.queueCapacity);
-                setShowSettingsModal(false);
-              }}
-              className="flex-1 btn-secondary"
-            >
-              取消
-            </button>
-            <button onClick={handleSaveSettings} className="flex-1 btn-primary">
-              保存设置
             </button>
           </div>
         </div>
