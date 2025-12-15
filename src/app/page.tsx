@@ -138,11 +138,11 @@ export default function LoginPage() {
             <p className="text-sm font-medium text-gray-700 mb-2">测试账号</p>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex justify-between">
-                <span>管理员:</span>
+                <span>账号1:</span>
                 <code className="bg-gray-200 px-2 py-0.5 rounded">admin / admin123</code>
               </div>
               <div className="flex justify-between">
-                <span>审核员:</span>
+                <span>账号2:</span>
                 <code className="bg-gray-200 px-2 py-0.5 rounded">reviewer1 / 123456</code>
               </div>
             </div>

@@ -49,12 +49,14 @@ export default function ReviewerWorkstation() {
     }
   }, [getPendingContents]);
 
-  // 初始化加载
+  // 初始化加载和状态变化时重新加载
   useEffect(() => {
     if (reviewer && reviewer.status === 'online') {
       getNextContent();
+    } else if (reviewer && reviewer.status === 'offline') {
+      setCurrentContent(null);
     }
-  }, [reviewer, getNextContent]);
+  }, [reviewer?.status, reviewer, getNextContent]);
 
   // 定期刷新
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function ReviewerWorkstation() {
       }, 3000);
       return () => clearInterval(interval);
     }
-  }, [reviewer, getNextContent]);
+  }, [reviewer?.status, reviewer, getNextContent]);
 
   // 处理通过
   const handleApprove = () => {
@@ -135,7 +137,10 @@ export default function ReviewerWorkstation() {
       const newStatus = reviewer.status === 'online' ? 'offline' : 'online';
       updateReviewerStatus(reviewer.id, newStatus);
       if (newStatus === 'online') {
-        getNextContent();
+        // 延迟一下确保状态更新完成后再获取内容
+        setTimeout(() => {
+          getNextContent();
+        }, 100);
       } else {
         setCurrentContent(null);
       }
@@ -243,6 +248,9 @@ export default function ReviewerWorkstation() {
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">{currentContent.publisher.nickname}</p>
                     <p className="text-sm text-gray-500">
+                      用户ID: <span className="font-mono text-gray-700">{currentContent.publisher.id}</span>
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
                       注册 {currentContent.publisher.registerDays} 天 · 发布 {currentContent.publisher.postCount} 篇
                     </p>
                   </div>

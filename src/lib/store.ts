@@ -222,7 +222,8 @@ export const useAppStore = create<AppState>()(
       login: (username, password) => {
         const state = get();
         
-        // 检查管理员
+        // 统一检查所有用户（管理员和审核员）
+        // 先检查管理员
         const admin = state.users.find(
           (u) => u.username === username && u.password === password
         );
@@ -231,7 +232,7 @@ export const useAppStore = create<AppState>()(
           return admin;
         }
         
-        // 检查审核员
+        // 再检查审核员
         const reviewer = state.reviewers.find(
           (r) => r.username === username && r.password === password
         );
