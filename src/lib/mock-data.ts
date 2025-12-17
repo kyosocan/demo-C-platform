@@ -1,4 +1,4 @@
-import { User, Reviewer, Content, ReviewRecord, ReviewStandard } from '@/types';
+import { User, Reviewer, Content, ReviewRecord, ReviewStandard, Attachment } from '@/types';
 
 // 模拟用户数据
 export const mockUsers: User[] = [
@@ -71,6 +71,15 @@ export const mockContents: Content[] = [
       'https://picsum.photos/400/600?random=1',
       'https://picsum.photos/400/600?random=2',
     ],
+    attachments: [
+      {
+        id: 'attach-1-1',
+        name: '穿搭搭配指南.pdf',
+        url: 'https://example.com/files/fashion-guide.pdf',
+        type: 'pdf',
+        size: 153600, // 150 KB
+      },
+    ],
     publisher: {
       id: 'user-101',
       nickname: '小*花',
@@ -90,6 +99,29 @@ export const mockContents: Content[] = [
       'https://picsum.photos/400/600?random=4',
       'https://picsum.photos/400/600?random=5',
     ],
+    attachments: [
+      {
+        id: 'attach-2-1',
+        name: '减脂餐食谱.pdf',
+        url: 'https://example.com/files/diet-recipes.pdf',
+        type: 'pdf',
+        size: 204800, // 200 KB
+      },
+      {
+        id: 'attach-2-2',
+        name: '营养搭配图.jpg',
+        url: 'https://picsum.photos/800/600?random=21',
+        type: 'image',
+        size: 307200, // 300 KB
+      },
+      {
+        id: 'attach-2-3',
+        name: '一周菜单.jpg',
+        url: 'https://picsum.photos/800/600?random=22',
+        type: 'image',
+        size: 256000, // 250 KB
+      },
+    ],
     publisher: {
       id: 'user-102',
       nickname: '健**达人',
@@ -106,6 +138,22 @@ export const mockContents: Content[] = [
     text: '今天给大家带来一个大瓜！某一线明星的私生活照片流出...',
     images: [
       'https://picsum.photos/400/600?random=6',
+    ],
+    attachments: [
+      {
+        id: 'attach-1',
+        name: '好玩的数学 01七巧板、九连环和华容道.pdf',
+        url: 'https://example.com/files/math-01.pdf',
+        type: 'pdf',
+        size: 99520, // 97.22 KB
+      },
+      {
+        id: 'attach-2',
+        name: '数学思维游戏图片.jpg',
+        url: 'https://picsum.photos/800/600?random=20',
+        type: 'image',
+        size: 245760, // 240 KB
+      },
     ],
     publisher: {
       id: 'user-103',
@@ -130,6 +178,15 @@ export const mockContents: Content[] = [
     images: [
       'https://picsum.photos/400/600?random=7',
       'https://picsum.photos/400/600?random=8',
+    ],
+    attachments: [
+      {
+        id: 'attach-4-1',
+        name: '产品成分分析.pdf',
+        url: 'https://example.com/files/product-analysis.pdf',
+        type: 'pdf',
+        size: 128000, // 125 KB
+      },
     ],
     publisher: {
       id: 'user-104',
@@ -173,6 +230,22 @@ export const mockContents: Content[] = [
       'https://picsum.photos/400/600?random=11',
       'https://picsum.photos/400/600?random=12',
       'https://picsum.photos/400/600?random=13',
+    ],
+    attachments: [
+      {
+        id: 'attach-6-1',
+        name: '云南旅行攻略.pdf',
+        url: 'https://example.com/files/yunnan-travel-guide.pdf',
+        type: 'pdf',
+        size: 358400, // 350 KB
+      },
+      {
+        id: 'attach-6-2',
+        name: '行程安排表.jpg',
+        url: 'https://picsum.photos/800/600?random=23',
+        type: 'image',
+        size: 192000, // 187.5 KB
+      },
     ],
     publisher: {
       id: 'user-106',

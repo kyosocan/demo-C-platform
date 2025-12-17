@@ -7,7 +7,10 @@ import {
   Flag,
   XCircle,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  File,
+  Download
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Content } from '@/types';
@@ -22,22 +25,24 @@ export default function ReviewQueue() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showTakeDownModal, setShowTakeDownModal] = useState(false);
   const [showTakeUpModal, setShowTakeUpModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [takeDownReason, setTakeDownReason] = useState('');
 
   // 筛选后的列表（搜索所有帖子）
   const filteredItems = useMemo(() => {
+    // 如果没有搜索关键词，不显示任何帖子
+    if (!searchTerm.trim()) {
+      return [];
+    }
+
     return contents
       .filter((content) => {
         // 搜索
-        if (searchTerm) {
-          const term = searchTerm.toLowerCase();
-          const matchTitle = content.title.toLowerCase().includes(term);
-          const matchText = content.text.toLowerCase().includes(term);
-          if (!matchTitle && !matchText) return false;
-        }
-
-        return true;
+        const term = searchTerm.toLowerCase();
+        const matchTitle = content.title.toLowerCase().includes(term);
+        const matchText = content.text.toLowerCase().includes(term);
+        return matchTitle || matchText;
       })
       .sort((a, b) => {
         // 按时间倒序排序
@@ -133,7 +138,7 @@ export default function ReviewQueue() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {filteredItems.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
-              {searchTerm ? '未找到匹配的帖子' : '暂无帖子'}
+              {searchTerm.trim() ? '未找到匹配的帖子' : '请输入关键词搜索帖子'}
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -188,6 +193,16 @@ export default function ReviewQueue() {
 
                     {/* 操作按钮 */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setSelectedContent(content);
+                          setShowDetailModal(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="查看详情"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
                       {canTakeDown(content) && (
                         <button
                           onClick={() => openTakeDownModal(content)}
@@ -215,9 +230,11 @@ export default function ReviewQueue() {
         </div>
 
         {/* 显示搜索结果数量 */}
-        <div className="mt-4 text-sm text-gray-500 text-center">
-          共找到 {filteredItems.length} 条帖子
-        </div>
+        {searchTerm.trim() && (
+          <div className="mt-4 text-sm text-gray-500 text-center">
+            共找到 {filteredItems.length} 条帖子
+          </div>
+        )}
       </div>
 
       {/* 上架确认弹窗 */}
@@ -316,6 +333,136 @@ export default function ReviewQueue() {
             </>
           )}
         </div>
+      </Modal>
+
+      {/* 详情弹窗 */}
+      <Modal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedContent(null);
+        }}
+        title="帖子详情"
+        size="lg"
+      >
+        {selectedContent && (
+          <div className="p-6">
+            {/* 图片 */}
+            {selectedContent.images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {selectedContent.images.map((img, idx) => (
+                  <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
+                    <Image
+                      src={img}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 内容 */}
+            <h3 className="text-lg font-bold text-gray-800 mb-2">
+              {selectedContent.title}
+            </h3>
+            <p className="text-gray-600 mb-4">{selectedContent.text}</p>
+
+            {/* 发布者信息 */}
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 font-medium">
+                  {selectedContent.publisher.nickname.charAt(0)}
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">{selectedContent.publisher.nickname}</p>
+                <p className="text-sm text-gray-500">
+                  用户ID: <span className="font-mono text-gray-700">{selectedContent.publisher.id}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* 附件列表 */}
+            {selectedContent.attachments && selectedContent.attachments.length > 0 && (
+              <div className="mb-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                <div className="flex items-center gap-2 text-gray-700 font-medium mb-3">
+                  <File className="w-4 h-4" />
+                  附件 ({selectedContent.attachments.length})
+                </div>
+                <div className="space-y-2">
+                  {selectedContent.attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        attachment.type === 'pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        {attachment.type === 'pdf' ? (
+                          <File className="w-5 h-5" />
+                        ) : (
+                          <File className="w-5 h-5" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {attachment.name}
+                        </p>
+                        {attachment.size && (
+                          <p className="text-xs text-gray-500">
+                            {(attachment.size / 1024).toFixed(2)} KB
+                          </p>
+                        )}
+                      </div>
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="查看/下载"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 状态信息 */}
+            <div className="border-t border-gray-100 pt-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">状态</span>
+                {getStatusBadge(selectedContent)}
+              </div>
+              {selectedContent.source === 'reported' && (
+                <div className="flex items-center gap-2 text-red-600 text-sm">
+                  <Flag className="w-4 h-4" />
+                  来自举报
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">发布时间</span>
+                <span className="text-gray-700">{formatRelativeTime(selectedContent.createdAt)}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setSelectedContent(null);
+                }}
+                className="flex-1 btn-secondary"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

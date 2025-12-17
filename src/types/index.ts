@@ -50,12 +50,22 @@ export interface Publisher {
   postCount: number;
 }
 
+// 附件类型
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  type: 'pdf' | 'image';
+  size?: number; // 文件大小（字节）
+}
+
 // 审核内容
 export interface Content {
   id: string;
   title: string;
   text: string;
   images: string[];
+  attachments?: Attachment[]; // 附件列表（PDF和图片）
   publisher: Publisher;
   source: ContentSource;
   reportInfo?: ReportInfo;

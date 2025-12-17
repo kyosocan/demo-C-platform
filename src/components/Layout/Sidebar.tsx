@@ -6,6 +6,7 @@ import {
   CheckCircle, 
   FileCheck, 
   Shield,
+  History,
   LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -35,6 +36,12 @@ const navItems: NavItem[] = [
     href: '/admin/blacklist-whitelist',
     label: '黑名单',
     icon: <Shield className="w-5 h-5" />,
+    roles: ['admin', 'reviewer'],
+  },
+  {
+    href: '/admin/history',
+    label: '审核记录',
+    icon: <History className="w-5 h-5" />,
     roles: ['admin', 'reviewer'],
   },
 ];

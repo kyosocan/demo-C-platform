@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import Sidebar from '@/components/Layout/Sidebar';
 import { ToastContainer } from '@/components/ui/Toast';
@@ -11,8 +10,7 @@ export default function ReviewerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const { currentUser } = useAppStore();
+  const { currentUser, reviewers, setCurrentUser } = useAppStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -20,18 +18,11 @@ export default function ReviewerLayout({
   }, []);
 
   useEffect(() => {
-    if (mounted && !currentUser) {
-      router.push('/');
+    if (mounted && !currentUser && reviewers.length > 0) {
+      // 如果没有当前用户，自动设置第一个审核员为当前用户
+      setCurrentUser(reviewers[0]);
     }
-  }, [currentUser, router, mounted]);
-
-  if (!mounted || !currentUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#ff2442] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  }, [mounted, currentUser, reviewers, setCurrentUser]);
 
   return (
     <div className="min-h-screen bg-gray-50">

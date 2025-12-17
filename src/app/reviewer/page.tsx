@@ -10,7 +10,10 @@ import {
   FileText,
   Settings,
   Flag,
-  Power
+  Power,
+  File,
+  Download,
+  Shield
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Reviewer, Content, RejectReason, REJECT_REASONS } from '@/types';
@@ -26,15 +29,18 @@ export default function ReviewerWorkstation() {
     getPendingContents,
     updateContent,
     addReviewRecord,
+    addToBlacklistWhitelist,
+    isInBlacklist,
   } = useAppStore();
 
   const reviewer = currentUser as Reviewer;
   const [currentContent, setCurrentContent] = useState<Content | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showBlacklistModal, setShowBlacklistModal] = useState(false);
   const [rejectReason, setRejectReason] = useState<RejectReason>('other');
-  const [rejectNote, setRejectNote] = useState('');
   const [imageIndex, setImageIndex] = useState(0);
+  const [blacklistNote, setBlacklistNote] = useState('');
 
   // 获取下一个待审核内容
   const getNextContent = useCallback(() => {
@@ -115,7 +121,6 @@ export default function ReviewerWorkstation() {
       reviewerName: reviewer.name,
       action: 'rejected',
       rejectReason,
-      rejectNote: rejectNote || undefined,
       reviewedAt: new Date().toISOString(),
       isOverturned: false,
     });
@@ -123,7 +128,6 @@ export default function ReviewerWorkstation() {
     toast.success('已拒绝');
     setShowRejectModal(false);
     setRejectReason('other');
-    setRejectNote('');
     
     // 获取下一个
     setTimeout(() => {
@@ -250,30 +254,82 @@ export default function ReviewerWorkstation() {
                     <p className="text-sm text-gray-500">
                       用户ID: <span className="font-mono text-gray-700">{currentContent.publisher.id}</span>
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      注册 {currentContent.publisher.registerDays} 天 · 发布 {currentContent.publisher.postCount} 篇
-                    </p>
+                    {isInBlacklist(currentContent.publisher.id) && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        已在黑名单
+                      </p>
+                    )}
                   </div>
+                  {!isInBlacklist(currentContent.publisher.id) && (
+                    <button
+                      onClick={() => {
+                        setShowBlacklistModal(true);
+                        setBlacklistNote('');
+                      }}
+                      className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1 border border-red-200 hover:border-red-300"
+                      title="拉黑用户"
+                    >
+                      <Shield className="w-4 h-4" />
+                      拉黑
+                    </button>
+                  )}
                 </div>
 
                 {/* 举报信息 */}
                 {currentContent.reportInfo && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-600 font-medium mb-2">
+                    <div className="flex items-center gap-2 text-red-600 font-medium">
                       <AlertTriangle className="w-4 h-4" />
-                      举报信息
+                      举报类型：{currentContent.reportInfo.reportType === 'copyright' ? '侵权' : '内容不合规'}
                     </div>
-                    <p className="text-sm text-gray-700">
-                      <span className="font-medium">类型：</span>
-                      {currentContent.reportInfo.reportType === 'copyright' ? '侵权' : '内容不合规'}
-                    </p>
-                    <p className="text-sm text-gray-700 mt-1">
-                      <span className="font-medium">原因：</span>
-                      {currentContent.reportInfo.reportReason}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      举报时间：{formatRelativeTime(currentContent.reportInfo.reportedAt)}
-                    </p>
+                  </div>
+                )}
+
+                {/* 附件列表 */}
+                {currentContent.attachments && currentContent.attachments.length > 0 && (
+                  <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                    <div className="flex items-center gap-2 text-gray-700 font-medium mb-3">
+                      <File className="w-4 h-4" />
+                      附件 ({currentContent.attachments.length})
+                    </div>
+                    <div className="space-y-2">
+                      {currentContent.attachments.map((attachment) => (
+                        <div
+                          key={attachment.id}
+                          className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                        >
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            attachment.type === 'pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                          }`}>
+                            {attachment.type === 'pdf' ? (
+                              <File className="w-5 h-5" />
+                            ) : (
+                              <FileText className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {attachment.name}
+                            </p>
+                            {attachment.size && (
+                              <p className="text-xs text-gray-500">
+                                {(attachment.size / 1024).toFixed(2)} KB
+                              </p>
+                            )}
+                          </div>
+                          <a
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="查看/下载"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -306,31 +362,6 @@ export default function ReviewerWorkstation() {
                 <p className="text-sm text-gray-500 mt-4 text-center">
                   快捷键：按 A 通过，按 R 拒绝
                 </p>
-              </div>
-
-              {/* 内容元信息 */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">内容信息</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">内容ID</span>
-                    <span className="font-mono text-gray-700">{currentContent.id}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">发布时间</span>
-                    <span className="text-gray-700">{formatRelativeTime(currentContent.createdAt)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">图片数量</span>
-                    <span className="text-gray-700">{currentContent.images.length} 张</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">来源</span>
-                    <span className={`badge ${currentContent.source === 'reported' ? 'badge-danger' : 'badge-info'}`}>
-                      {currentContent.source === 'reported' ? '举报' : '正常发布'}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -388,16 +419,6 @@ export default function ReviewerWorkstation() {
             ))}
           </div>
 
-          <div className="mb-6">
-            <label className="label">补充说明（可选）</label>
-            <textarea
-              value={rejectNote}
-              onChange={(e) => setRejectNote(e.target.value)}
-              className="input min-h-[100px] resize-none"
-              placeholder="请输入补充说明..."
-            />
-          </div>
-
           <div className="flex gap-3">
             <button
               onClick={() => setShowRejectModal(false)}
@@ -409,6 +430,75 @@ export default function ReviewerWorkstation() {
               确认拒绝
             </button>
           </div>
+          </div>
+        </Modal>
+
+      {/* 拉黑确认弹窗 */}
+      <Modal
+        isOpen={showBlacklistModal}
+        onClose={() => {
+          setShowBlacklistModal(false);
+          setBlacklistNote('');
+        }}
+        title="确认拉黑用户"
+        size="sm"
+      >
+        <div className="p-6">
+          {currentContent && (
+            <>
+              <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                <div className="flex items-center gap-2 text-red-600 font-medium mb-2">
+                  <Shield className="w-4 h-4" />
+                  确认将此用户加入黑名单？
+                </div>
+                <div className="text-sm text-gray-700">
+                  <p className="font-medium mb-1">用户昵称：{currentContent.publisher.nickname}</p>
+                  <p className="text-gray-600">
+                    用户ID: <span className="font-mono">{currentContent.publisher.id}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="label">备注（可选）</label>
+                <textarea
+                  value={blacklistNote}
+                  onChange={(e) => setBlacklistNote(e.target.value)}
+                  className="input min-h-[100px] resize-none"
+                  placeholder="请输入拉黑原因..."
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowBlacklistModal(false);
+                    setBlacklistNote('');
+                  }}
+                  className="flex-1 btn-secondary"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    if (currentContent) {
+                      addToBlacklistWhitelist(
+                        currentContent.publisher.id,
+                        'blacklist',
+                        blacklistNote.trim() || undefined
+                      );
+                      toast.success('用户已加入黑名单');
+                      setShowBlacklistModal(false);
+                      setBlacklistNote('');
+                    }
+                  }}
+                  className="flex-1 btn-danger"
+                >
+                  确认拉黑
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
