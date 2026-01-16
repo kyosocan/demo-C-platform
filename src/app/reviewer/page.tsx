@@ -13,10 +13,14 @@ import {
   Power,
   File,
   Download,
-  Shield
+  Shield,
+  EyeOff,
+  ThumbsUp,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { Reviewer, Content, RejectReason, REJECT_REASONS } from '@/types';
+import { Reviewer, Content, RejectReason, REJECT_REASONS, REPORT_TYPES } from '@/types';
 import Header from '@/components/Layout/Header';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from '@/components/ui/Toast';
@@ -38,9 +42,13 @@ export default function ReviewerWorkstation() {
   const [pendingCount, setPendingCount] = useState(0);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
+  const [showShadowBanModal, setShowShadowBanModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
   const [rejectReason, setRejectReason] = useState<RejectReason>('other');
   const [imageIndex, setImageIndex] = useState(0);
   const [blacklistNote, setBlacklistNote] = useState('');
+  const [likeCount, setLikeCount] = useState('');
+  const [favoriteCount, setFavoriteCount] = useState('');
 
   // 获取下一个待审核内容
   const getNextContent = useCallback(() => {
@@ -276,12 +284,80 @@ export default function ReviewerWorkstation() {
                   )}
                 </div>
 
+                {/* 影子封禁状态 */}
+                {currentContent.isShadowBanned && (
+                  <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                    <div className="flex items-center gap-2 text-gray-600 font-medium">
+                      <EyeOff className="w-4 h-4" />
+                      此帖子已影子封禁（不可搜索）
+                    </div>
+                  </div>
+                )}
+
+                {/* 评论展示 */}
+                {currentContent.comments && currentContent.comments.length > 0 && (
+                  <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                    <div className="flex items-center gap-2 text-gray-700 font-medium mb-3">
+                      <MessageSquare className="w-4 h-4" />
+                      评论 ({currentContent.comments.length})
+                    </div>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      {currentContent.comments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="p-3 bg-white rounded-lg border border-gray-200"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-bold text-gray-800">{comment.nickname}</span>
+                            <span className="text-xs text-gray-400">{formatRelativeTime(comment.createdAt)}</span>
+                          </div>
+                          <p className="text-sm text-gray-600">{comment.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 点赞和收藏量 */}
+                {(currentContent.likeCount !== undefined || currentContent.favoriteCount !== undefined) && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                    <div className="flex items-center gap-4 text-sm">
+                      {currentContent.likeCount !== undefined && (
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <ThumbsUp className="w-4 h-4" />
+                          <span className="font-medium">点赞: {currentContent.likeCount}</span>
+                        </div>
+                      )}
+                      {currentContent.favoriteCount !== undefined && (
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <Star className="w-4 h-4" />
+                          <span className="font-medium">收藏: {currentContent.favoriteCount}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* 举报信息 */}
                 {currentContent.reportInfo && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-600 font-medium">
+                    <div className="flex items-center gap-2 text-red-600 font-bold mb-1">
                       <AlertTriangle className="w-4 h-4" />
-                      举报类型：{currentContent.reportInfo.reportType === 'copyright' ? '侵权' : '内容不合规'}
+                      {REPORT_TYPES.find(t => t.value === currentContent.reportInfo?.reportType)?.label || '举报信息'}
+                    </div>
+                    <div className="text-sm text-gray-500 mb-3 ml-6">
+                      {REPORT_TYPES.find(t => t.value === currentContent.reportInfo?.reportType)?.description}
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-100 ml-6 relative">
+                      <div className="flex-1">
+                        <div className="text-xs text-gray-400 mb-1">举报描述：</div>
+                        <div className="text-sm text-gray-700">{currentContent.reportInfo.reportReason}</div>
+                      </div>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -362,6 +438,46 @@ export default function ReviewerWorkstation() {
                 <p className="text-sm text-gray-500 mt-4 text-center">
                   快捷键：按 A 通过，按 R 拒绝
                 </p>
+              </div>
+
+              {/* 其他操作 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">其他操作</h3>
+                
+                <div className="space-y-3">
+                  {currentContent.isShadowBanned ? (
+                    <button
+                      onClick={() => {
+                        updateContent(currentContent.id, { isShadowBanned: false });
+                        toast.success('已取消影子封禁');
+                      }}
+                      className="w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-gray-200"
+                    >
+                      <EyeOff className="w-5 h-5" />
+                      取消影子封禁
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowShadowBanModal(true)}
+                      className="w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-gray-200"
+                    >
+                      <EyeOff className="w-5 h-5" />
+                      影子封禁
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      setLikeCount('');
+                      setFavoriteCount('');
+                      setShowStatsModal(true);
+                    }}
+                    className="w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors border border-gray-200"
+                  >
+                    <ThumbsUp className="w-5 h-5" />
+                    增加点赞/收藏量
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -495,6 +611,172 @@ export default function ReviewerWorkstation() {
                   className="flex-1 btn-danger"
                 >
                   确认拉黑
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* 影子封禁确认弹窗 */}
+      <Modal
+        isOpen={showShadowBanModal}
+        onClose={() => {
+          setShowShadowBanModal(false);
+        }}
+        title="确认影子封禁帖子"
+        size="sm"
+      >
+        <div className="p-6">
+          {currentContent && (
+            <>
+              <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-2 text-gray-700 font-medium mb-2">
+                  <EyeOff className="w-4 h-4" />
+                  确认影子封禁此帖子？
+                </div>
+                <div className="text-sm text-gray-700">
+                  <p className="font-medium mb-1">标题：{currentContent.title}</p>
+                  <p className="text-gray-600 line-clamp-2">{currentContent.text}</p>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 italic">
+                  影子封禁后，帖子将不会出现在首页和搜索结果中。
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowShadowBanModal(false);
+                  }}
+                  className="flex-1 btn-secondary"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    if (currentContent) {
+                      updateContent(currentContent.id, { isShadowBanned: true });
+                      toast.success('帖子已影子封禁');
+                      setShowShadowBanModal(false);
+                    }
+                  }}
+                  className="flex-1 btn-primary bg-gray-700 hover:bg-gray-800"
+                >
+                  确认影子封禁
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* 增加点赞/收藏量弹窗 */}
+      <Modal
+        isOpen={showStatsModal}
+        onClose={() => {
+          setShowStatsModal(false);
+          setLikeCount('');
+          setFavoriteCount('');
+        }}
+        title="增加点赞量和收藏量"
+        size="sm"
+      >
+        <div className="p-6">
+          {currentContent && (
+            <>
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="text-sm text-gray-700">
+                  <p className="font-medium mb-1">标题：{currentContent.title}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="label flex items-center gap-2">
+                    <ThumbsUp className="w-4 h-4" />
+                    增加点赞数
+                  </label>
+                  <input
+                    type="number"
+                    value={likeCount}
+                    onChange={(e) => setLikeCount(e.target.value)}
+                    className="input"
+                    placeholder="输入要增加的数量"
+                    min="0"
+                  />
+                  {currentContent.likeCount !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      当前值: {currentContent.likeCount}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="label flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    增加收藏数
+                  </label>
+                  <input
+                    type="number"
+                    value={favoriteCount}
+                    onChange={(e) => setFavoriteCount(e.target.value)}
+                    className="input"
+                    placeholder="输入要增加的数量"
+                    min="0"
+                  />
+                  {currentContent.favoriteCount !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      当前值: {currentContent.favoriteCount}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowStatsModal(false);
+                    setLikeCount('');
+                    setFavoriteCount('');
+                  }}
+                  className="flex-1 btn-secondary"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    if (currentContent) {
+                      const likeAdd = likeCount.trim() ? parseInt(likeCount) : 0;
+                      const favoriteAdd = favoriteCount.trim() ? parseInt(favoriteCount) : 0;
+
+                      if (isNaN(likeAdd) || likeAdd < 0) {
+                        toast.error('点赞量必须是大于等于0的数字');
+                        return;
+                      }
+
+                      if (isNaN(favoriteAdd) || favoriteAdd < 0) {
+                        toast.error('收藏量必须是大于等于0的数字');
+                        return;
+                      }
+
+                      const newLikeCount = (currentContent.likeCount || 0) + likeAdd;
+                      const newFavoriteCount = (currentContent.favoriteCount || 0) + favoriteAdd;
+
+                      updateContent(currentContent.id, {
+                        likeCount: newLikeCount,
+                        favoriteCount: newFavoriteCount,
+                      });
+
+                      toast.success(`已增加点赞和收藏（当前：点赞 ${newLikeCount}，收藏 ${newFavoriteCount}）`);
+                      setShowStatsModal(false);
+                      setLikeCount('');
+                      setFavoriteCount('');
+                    }
+                  }}
+                  className="flex-1 btn-primary"
+                >
+                  确认增加
                 </button>
               </div>
             </>

@@ -18,6 +18,7 @@ interface AppState {
   contents: Content[];
   addContent: (content: Content) => void;
   updateContent: (id: string, updates: Partial<Content>) => void;
+  deleteComment: (contentId: string, commentId: string) => void;
   
   // 审核记录
   reviewRecords: ReviewRecord[];
@@ -85,6 +86,14 @@ export const useAppStore = create<AppState>()(
       updateContent: (id, updates) => set((state) => ({
         contents: state.contents.map((c) =>
           c.id === id ? { ...c, ...updates } : c
+        ),
+      })),
+      
+      deleteComment: (contentId, commentId) => set((state) => ({
+        contents: state.contents.map((c) =>
+          c.id === contentId
+            ? { ...c, comments: c.comments?.filter((comm) => comm.id !== commentId) }
+            : c
         ),
       })),
       

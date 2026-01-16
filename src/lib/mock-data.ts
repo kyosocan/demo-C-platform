@@ -89,6 +89,12 @@ export const mockContents: Content[] = [
     source: 'normal',
     status: 'pending',
     createdAt: '2024-03-15T10:30:00Z',
+    likeCount: 128, // 示例：已有点赞量
+    favoriteCount: 45, // 示例：已有收藏量
+    comments: [
+      { id: 'comm-1', content: '很有用的分享，感谢！', userId: 'user-201', nickname: '美**客', createdAt: '2024-03-15T11:00:00Z' },
+      { id: 'comm-2', content: '小白鞋什么牌子的？', userId: 'user-202', nickname: '穿搭小白', createdAt: '2024-03-15T11:30:00Z' },
+    ],
   },
   {
     id: 'content-2',
@@ -131,6 +137,12 @@ export const mockContents: Content[] = [
     source: 'normal',
     status: 'pending',
     createdAt: '2024-03-15T11:00:00Z',
+    likeCount: 256,
+    favoriteCount: 89,
+    comments: [
+      { id: 'comm-3', content: '收藏了，明天就开始试！', userId: 'user-203', nickname: '健身达人', createdAt: '2024-03-15T12:00:00Z' },
+      { id: 'comm-4', content: '鸡胸肉怎么做不柴啊？', userId: 'user-204', nickname: '厨房新手', createdAt: '2024-03-15T12:30:00Z' },
+    ],
   },
   {
     id: 'content-3',
@@ -163,13 +175,14 @@ export const mockContents: Content[] = [
     },
     source: 'reported',
     reportInfo: {
-      reportType: 'inappropriate',
+      reportType: 'harm',
       reporterId: 'user-200',
       reportReason: '涉嫌传播隐私信息，未经证实的谣言',
       reportedAt: '2024-03-15T12:00:00Z',
     },
     status: 'pending',
     createdAt: '2024-03-15T09:00:00Z',
+    isShadowBanned: true, // 示例：已影子封禁的帖子
   },
   {
     id: 'content-4',
@@ -213,7 +226,7 @@ export const mockContents: Content[] = [
     },
     source: 'reported',
     reportInfo: {
-      reportType: 'copyright',
+      reportType: 'rights',
       reporterId: 'user-201',
       reportReason: '疑似售卖假货，图片盗用他人',
       reportedAt: '2024-03-15T14:00:00Z',
@@ -290,7 +303,7 @@ export const mockContents: Content[] = [
     },
     source: 'reported',
     reportInfo: {
-      reportType: 'inappropriate',
+      reportType: 'harm',
       reporterId: 'user-202',
       reportReason: '虚假广告，疑似诈骗',
       reportedAt: '2024-03-15T17:00:00Z',
@@ -342,7 +355,7 @@ export const mockReviewRecords: ReviewRecord[] = [
       },
       source: 'reported',
       reportInfo: {
-        reportType: 'inappropriate',
+        reportType: 'harm',
         reporterId: 'user-300',
         reportReason: '诈骗信息',
         reportedAt: '2024-03-14T11:00:00Z',

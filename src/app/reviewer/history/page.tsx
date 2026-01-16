@@ -8,10 +8,11 @@ import {
   AlertTriangle,
   Search,
   Filter,
-  Eye
+  Eye,
+  MessageSquare
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { Reviewer, ReviewRecord, REJECT_REASONS } from '@/types';
+import { Reviewer, ReviewRecord, REJECT_REASONS, REPORT_TYPES } from '@/types';
 import Header from '@/components/Layout/Header';
 import { Modal } from '@/components/ui/Modal';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
@@ -232,6 +233,30 @@ export default function ReviewerHistory() {
             </h3>
             <p className="text-gray-600 mb-4">{selectedRecord.content.text}</p>
 
+            {/* 评论展示 */}
+            {selectedRecord.content.comments && selectedRecord.content.comments.length > 0 && (
+              <div className="mb-4 p-4 bg-gray-50 border border-gray-100 rounded-lg">
+                <div className="flex items-center gap-2 text-gray-700 font-medium mb-3">
+                  <MessageSquare className="w-4 h-4" />
+                  评论 ({selectedRecord.content.comments.length})
+                </div>
+                <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
+                  {selectedRecord.content.comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="p-3 bg-white rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-gray-800">{comment.nickname}</span>
+                        <span className="text-xs text-gray-400">{formatRelativeTime(comment.createdAt)}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">{comment.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 审核结果 */}
             <div className="border-t border-gray-100 pt-4 space-y-3">
               <div className="flex justify-between text-sm">
@@ -265,6 +290,31 @@ export default function ReviewerHistory() {
                 <span className="text-gray-500">审核时间</span>
                 <span className="text-gray-700">{formatDate(selectedRecord.reviewedAt)}</span>
               </div>
+
+              {selectedRecord.content.source === 'reported' && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-600 font-bold mb-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    {REPORT_TYPES.find(t => t.value === selectedRecord.content.reportInfo?.reportType)?.label || '举报信息'}
+                  </div>
+                  <div className="text-sm text-gray-500 mb-3 ml-6">
+                    {REPORT_TYPES.find(t => t.value === selectedRecord.content.reportInfo?.reportType)?.description}
+                  </div>
+                  {selectedRecord.content.reportInfo && (
+                    <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-100 ml-6 relative">
+                      <div className="flex-1">
+                        <div className="text-xs text-gray-400 mb-1">举报描述：</div>
+                        <div className="text-sm text-gray-700">{selectedRecord.content.reportInfo.reportReason}</div>
+                      </div>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 复核信息 */}
               {selectedRecord.isOverturned && (

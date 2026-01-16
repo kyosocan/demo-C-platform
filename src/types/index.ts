@@ -11,7 +11,7 @@ export type ContentStatus = 'pending' | 'approved' | 'rejected' | 'under_review'
 export type ContentSource = 'normal' | 'reported';
 
 // 举报类型
-export type ReportType = 'copyright' | 'inappropriate';
+export type ReportType = 'harm' | 'rights';
 
 // 拒绝原因类型
 export type RejectReason = 
@@ -72,6 +72,21 @@ export interface Content {
   status: ContentStatus;
   assignedTo?: string; // 分配给哪个审核员
   assignedAt?: string;
+  createdAt: string;
+  // 影子封禁和互动数据
+  isShadowBanned?: boolean; // 是否影子封禁（不会出现在首页和搜索结果中）
+  isSticky?: boolean; // 是否置顶
+  likeCount?: number; // 点赞量
+  favoriteCount?: number; // 收藏量
+  comments?: Comment[]; // 评论列表
+}
+
+// 评论
+export interface Comment {
+  id: string;
+  content: string;
+  userId: string;
+  nickname: string;
   createdAt: string;
 }
 
@@ -143,9 +158,17 @@ export const REJECT_REASONS: { value: RejectReason; label: string }[] = [
 ];
 
 // 举报类型选项
-export const REPORT_TYPES: { value: ReportType; label: string }[] = [
-  { value: 'copyright', label: '侵权' },
-  { value: 'inappropriate', label: '内容不合规' },
+export const REPORT_TYPES: { value: ReportType; label: string; description: string }[] = [
+  { 
+    value: 'harm', 
+    label: '对他人造成困扰或危害', 
+    description: '含有违法违规，色情低俗、涉嫌诈骗、违规营销及其他可能导致他人困扰或危害的内容' 
+  },
+  { 
+    value: 'rights', 
+    label: '侵犯我/我的组织的权益', 
+    description: '含有中伤名誉、泄漏肖像及隐私、抄袭搬运、假冒商标或专利、冒充身份等对我造成侵权的内容' 
+  },
 ];
 
 // 黑白名单类型
